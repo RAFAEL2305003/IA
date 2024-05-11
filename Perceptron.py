@@ -6,6 +6,7 @@ class TruthTable:
 		self.columns = num_of_columns + 1
 		self.operation = operation
 		self.truth_table = [[False for _ in range(self.columns)] for _ in range(self.rows)]
+		self.generate_truth_table()
 
 
 	def to_binary(self, number_decimal):
@@ -100,28 +101,75 @@ class TruthTable:
 class Perceptron:
 	def __init__(self, number_of_inputs, operation):
 		self.truth_table = TruthTable(number_of_inputs, operation)
-		self.index_baias = number_of_inputs + 1
+		self.number_of_inputs = self.truth_table.columns
+		self.weights_initialized = False
 		self.weights = []
 		self.output = []
 
 
 	def create_wheights(self):
-		for i in range(len(self.weights)):
+		for _ in range(self.number_of_inputs):
 			rand = random.uniform(-1, 1)
 			self.weights.append(rand)
+		self.weights_initialized = True
 
-	
-	#  def recalculate_weights(self):
-	
 
-	def train(self):
-		sum_output = 1
+	def get_inputs(self, row):
+		inputs = []
+		for j in range(self.truth_table.columns):
+			if j < self.truth_table.columns - 1:
+				if self.truth_table.truth_table[row][j] == False:
+					inputs.append(0)
+				else:
+					inputs.append(1)
+		inputs.append(1)
+		return inputs
+
+
+	def recalculate_weights(self, inputs, expected_output, output):
+		new_weights = []
 		for i in range(len(self.weights)):
-			sum_output += self.truth_table[i][j] * self.weights[i]
+			new_weight = self.weights[i] + (0.2 * inputs[i] * (expected_output - output))
+			new_weights.append(new_weight)
+		self.weights = new_weights
+
+	
+	def activation_function(self, number):
+		return 0 if number <= 0 else 1
+	
+
+	def verify_output(self):
+		correct_output = True
+		for i in range(len(self.output)):
+			if i >= len(self.truth_table.truth_table):
+				correct_output = False
+				break
+			if self.output[i] != self.truth_table.truth_table[i][self.truth_table.columns - 1]:
+				correct_output = False
+				break
+		return correct_output
+
+	
+	def train(self):
+		if not self.weights_initialized:
+			self.create_wheights()
+		for i in range(self.truth_table.rows):
+			sum_output = 0
+			inputs = self.get_inputs(i)
+			for index in range(len(inputs)):
+				sum_output += (inputs[index] * self.weights[index])
+			if self.activation_function(sum_output) != self.truth_table.truth_table[i][self.truth_table.columns - 1]:
+				self.recalculate_weights(inputs, self.truth_table.truth_table[i][self.truth_table.columns - 1], self.activation_function(sum_output))
+				self.output.append(self.activation_function(sum_output))
+				if not self.verify_output():
+					return self.train()
+			else:
+				self.output.append(self.activation_function(sum_output))
+		print(f"\nAll result until perceptron solve: {self.output} (The last {self.truth_table.rows} positions are the corret result!)")
 
 
 number_of_inputs = int(input("Enter the number of inputs for your truth table: "))
 operation = int(input("Enter the operation that your truth table will perform. Type:\n 0 - For and\n 1 - For or\n 2 - For xor\n-> "))
 
 perceptron = Perceptron(number_of_inputs, operation)
-perceptron.create_wheights()
+perceptron.train()
